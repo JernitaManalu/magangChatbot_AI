@@ -28,7 +28,8 @@ const ChatInterface = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Production API URL (HuggingFace Spaces)
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://your-space.hf.space";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://hf.co/spaces/Jernihh/magangChatbot_AI";
+
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
