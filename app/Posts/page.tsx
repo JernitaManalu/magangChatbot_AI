@@ -1,4 +1,4 @@
-// app/page.tsx - Production Version
+// app/page.tsx - Enhanced with Query Expansion Display
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -9,6 +9,8 @@ interface Source {
   link: string;
   release_date: string;
   similarity: number;
+  source_type?: string;
+  category?: string;
 }
 
 interface ChatMessage {
@@ -17,6 +19,13 @@ interface ChatMessage {
   sources?: Source[];
   timestamp: Date;
   model?: string;
+  metadata?: {
+    original_query?: string;
+    expanded_query?: string;
+    search_keyword?: string;
+    time_references?: string[];
+    found_documents?: number;
+  };
 }
 
 const ChatInterface = () => {
@@ -27,9 +36,7 @@ const ChatInterface = () => {
   const [selectedModel, setSelectedModel] = useState<"groq" | "gemini">("groq");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Production API URL (HuggingFace Spaces)
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://jernihh-magangchatbot-ai.hf.space/api/chat";
-
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://jernihh-magangchatbot-ai.hf.space";
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -79,6 +86,7 @@ const ChatInterface = () => {
         sources: data.sources || [],
         timestamp: new Date(),
         model: data.metadata?.model || selectedModel,
+        metadata: data.metadata,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -98,49 +106,48 @@ const ChatInterface = () => {
   };
 
   const quickQuestions = [
-    "Data inflasi Sumatera Utara terbaru",
-    "Tingkat kemiskinan di Sumut",
-    "Pertumbuhan ekonomi Sumatera Utara",
-    "Data pengangguran Sumut",
+    "Data inflasi 2 tahun terakhir",
+    "Tingkat kemiskinan Sumut tahun ini",
+    "Pertumbuhan ekonomi 3 tahun belakangan",
+    "Pengangguran terbaru",
   ];
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
       <div className="w-64 bg-gray-800 text-white p-4 flex flex-col">
         <h2 className="text-xl font-bold mb-2">🤖 INDA</h2>
         <p className="text-xs text-gray-300 mb-4">
           Intelligent Data Assistant - BPS Sumatera Utara
         </p>
 
-        {/* Model Selection */}
         <div className="mb-4">
           <p className="text-xs text-gray-400 mb-2">🧠 Pilih Model:</p>
           <div className="space-y-2">
             <button
               onClick={() => setSelectedModel("groq")}
               disabled={loading}
-              className={`w-full text-left text-xs rounded p-2 transition-colors ${selectedModel === "groq"
+              className={`w-full text-left text-xs rounded p-2 transition-colors ${
+                selectedModel === "groq"
                   ? "bg-blue-600 text-white"
                   : "bg-gray-700 hover:bg-gray-600"
-                }`}
+              }`}
             >
               ⚡ Llama 3.1 8B (Groq)
             </button>
             <button
               onClick={() => setSelectedModel("gemini")}
               disabled={loading}
-              className={`w-full text-left text-xs rounded p-2 transition-colors ${selectedModel === "gemini"
+              className={`w-full text-left text-xs rounded p-2 transition-colors ${
+                selectedModel === "gemini"
                   ? "bg-blue-600 text-white"
                   : "bg-gray-700 hover:bg-gray-600"
-                }`}
+              }`}
             >
               ✨ Gemini 2.0 Flash
             </button>
           </div>
         </div>
 
-        {/* Quick Questions */}
         <div className="mb-4">
           <p className="text-xs text-gray-400 mb-2">💡 Pertanyaan Cepat:</p>
           <div className="space-y-2">
@@ -159,14 +166,13 @@ const ChatInterface = () => {
 
         <div className="flex-1" />
 
-        {/* Info */}
         <div className="text-xs text-gray-400 mt-4 border-t border-gray-700 pt-4">
           <p className="mb-2">🔧 Tech Stack:</p>
           <ul className="list-disc list-inside space-y-1">
             <li>LangChain RAG</li>
+            <li>Query Expansion</li>
             <li>Qdrant Cloud</li>
             <li>FastAPI</li>
-            <li>HuggingFace</li>
           </ul>
         </div>
 
@@ -183,9 +189,7 @@ const ChatInterface = () => {
         </div>
       </div>
 
-      {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
-        {/* Header */}
         <div className="bg-white border-b px-6 py-4 shadow-sm">
           <h1 className="text-xl font-semibold text-gray-800">
             Chat dengan INDA
@@ -198,7 +202,6 @@ const ChatInterface = () => {
           </p>
         </div>
 
-        {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {messages.length === 0 && (
             <div className="text-center text-gray-500 mt-20">
@@ -209,29 +212,63 @@ const ChatInterface = () => {
               <p className="text-sm mb-4">
                 Tanyakan tentang data inflasi, ekonomi, atau statistik lainnya
               </p>
+              <div className="text-xs text-gray-400 max-w-md mx-auto bg-blue-50 p-3 rounded-lg">
+                <span className="font-semibold">✨ Fitur Baru:</span> INDA sekarang dapat memahami pertanyaan dengan waktu relatif seperti "2 tahun terakhir" atau "tahun ini"
+              </div>
             </div>
           )}
 
           {messages.map((msg, idx) => (
             <div
               key={idx}
-              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+              className={`flex ${
+                msg.role === "user" ? "justify-end" : "justify-start"
+              }`}
             >
               <div
-                className={`max-w-3xl rounded-lg p-4 ${msg.role === "user"
+                className={`max-w-3xl rounded-lg p-4 ${
+                  msg.role === "user"
                     ? "bg-blue-500 text-white"
                     : "bg-white border shadow-sm"
-                  }`}
+                }`}
               >
                 <div
-                  className={`text-sm whitespace-pre-wrap ${msg.role === "user" ? "text-white" : "text-gray-800"
-                    }`}
+                  className={`text-sm whitespace-pre-wrap ${
+                    msg.role === "user" ? "text-white" : "text-gray-800"
+                  }`}
                   dangerouslySetInnerHTML={{ __html: msg.content }}
                 />
 
+                {msg.metadata?.expanded_query && msg.metadata.expanded_query !== msg.metadata.original_query && (
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <div className="text-xs bg-blue-50 rounded p-2">
+                      <p className="font-semibold text-blue-700 mb-1">
+                        🧠 Pemahaman Query:
+                      </p>
+                      <p className="text-gray-700">
+                        <span className="font-medium">Pertanyaan asli:</span> {msg.metadata.original_query}
+                      </p>
+                      <p className="text-gray-700 mt-1">
+                        <span className="font-medium">Diperluas menjadi:</span> {msg.metadata.expanded_query}
+                      </p>
+                      {msg.metadata.time_references && msg.metadata.time_references.length > 0 && (
+                        <p className="text-gray-700 mt-1">
+                          <span className="font-medium">Periode:</span> {msg.metadata.time_references.join(", ")}
+                        </p>
+                      )}
+                      {msg.metadata.search_keyword && (
+                        <p className="text-gray-700 mt-1">
+                          <span className="font-medium">Kata kunci pencarian:</span> {msg.metadata.search_keyword}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div
-                  className={`text-xs mt-2 flex justify-between items-center ${msg.role === "user" ? "text-blue-100" : "text-gray-400"
-                    }`}
+                  className={`text-xs mt-2 flex justify-between items-center ${
+                    msg.role === "user" ? "text-blue-100" : "text-gray-400"
+                  }`}
                 >
                   <span>
                     {msg.timestamp.toLocaleTimeString("id-ID", {
@@ -257,16 +294,15 @@ const ChatInterface = () => {
                           key={sidx}
                           className="bg-gray-50 rounded p-3 text-xs hover:bg-gray-100"
                         >
-                          <div className="font-semibold text-gray-700 mb-1">
-                            {sidx + 1}. {source.title}
-                          </div>
-                          <div className="text-gray-600 text-xs mb-2">
-                            {source.abstract.substring(0, 150)}...
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-500">
-                              📅 {source.release_date}
-                            </span>
+                          <div className="flex items-start justify-between mb-1">
+                            <div className="font-semibold text-gray-700 flex-1">
+                              {sidx + 1}. {source.title}
+                            </div>
+                            {source.source_type && (
+                              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded ml-2">
+                                {source.source_type}
+                              </span>
+                            )}
                           </div>
                           {source.link && (
                             <a
@@ -293,58 +329,15 @@ const ChatInterface = () => {
                 <div className="flex items-center space-x-2">
                   <div className="animate-bounce">🤖</div>
                   <div className="text-sm text-gray-600">
-                    INDA sedang menganalisis...
+                    INDA sedang menganalisis dan memperluas query Anda...
                   </div>
+                </div>
+                <div className="mt-2 text-xs text-gray-500">
+                  ✨ Memproses waktu relatif dan kata kunci
                 </div>
               </div>
             </div>
           )}
 
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
-              <div className="flex items-start">
-                <span className="mr-2">❌</span>
-                <div>
-                  <p className="font-semibold mb-1">Error:</p>
-                  <p>{error}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input Area */}
-        <div className="bg-white border-t p-4">
-          <form onSubmit={handleSubmit} className="flex gap-2 max-w-4xl mx-auto">
-            <input
-              type="text"
-              placeholder="Ketik pertanyaan Anda di sini..."
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              className="flex-1 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400 text-gray-800"
-              disabled={loading}
-              required
-            />
-            <button
-              type="submit"
-              disabled={loading || !question.trim()}
-              className={`px-6 py-3 rounded-lg font-medium transition-all ${loading || !question.trim()
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-blue-500 hover:bg-blue-600 text-white hover:shadow-lg"
-                }`}
-            >
-              {loading ? "⏳" : "📤"}
-            </button>
-          </form>
-          <p className="text-xs text-center text-gray-400 mt-2">
-            Press Enter to send • INDA v1.0 • Powered by LangChain
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default ChatInterface;
+            <div className="bg-red-50 border border-red-
