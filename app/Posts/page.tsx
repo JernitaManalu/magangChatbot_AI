@@ -1,4 +1,3 @@
-// app/page.tsx - Production Version
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -9,6 +8,8 @@ interface Source {
   link: string;
   release_date: string;
   similarity: number;
+  source_type?: string;
+  category?: string;
 }
 
 interface ChatMessage {
@@ -27,9 +28,8 @@ const ChatInterface = () => {
   const [selectedModel, setSelectedModel] = useState<"groq" | "gemini">("groq");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Production API URL (HuggingFace Spaces)
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://jernihh-magangchatbot-ai.hf.space/api/chat";
-
+  // ✅ FIXED: Hapus duplikasi /api/chat
+  const API_URL = "https://jernihh-magangchatbot-ai.hf.space";
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -55,6 +55,7 @@ const ChatInterface = () => {
     setError(null);
 
     try {
+      // ✅ FIXED: URL yang benar tanpa duplikasi
       const res = await fetch(`${API_URL}/api/chat`, {
         method: "POST",
         headers: {
@@ -68,7 +69,8 @@ const ChatInterface = () => {
       });
 
       if (!res.ok) {
-        throw new Error(`API Error: ${res.status}`);
+        const errorText = await res.text();
+        throw new Error(`API Error ${res.status}: ${errorText}`);
       }
 
       const data = await res.json();
@@ -85,10 +87,11 @@ const ChatInterface = () => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Terjadi kesalahan";
       setError(errorMessage);
+      console.error("Chat error:", err);
 
       const errorChatMessage: ChatMessage = {
         role: "assistant",
-        content: `Maaf, terjadi kesalahan: ${errorMessage}`,
+        content: `❌ Maaf, terjadi kesalahan: ${errorMessage}`,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorChatMessage]);
@@ -101,16 +104,16 @@ const ChatInterface = () => {
     "Data inflasi Sumatera Utara terbaru",
     "Tingkat kemiskinan di Sumut",
     "Pertumbuhan ekonomi Sumatera Utara",
-    "Data pengangguran Sumut",
+    "Data pengangguran Sumut tahun 2024",
   ];
 
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
-      <div className="w-64 bg-gray-800 text-white p-4 flex flex-col">
+      <div className="w-64 bg-gray-800 text-white p-4 flex flex-col overflow-y-auto">
         <h2 className="text-xl font-bold mb-2">🤖 INDA</h2>
         <p className="text-xs text-gray-300 mb-4">
-          Intelligent Data Assistant - BPS Sumatera Utara
+          Intelligent Data Assistant<br/>BPS Sumatera Utara
         </p>
 
         {/* Model Selection */}
@@ -120,20 +123,22 @@ const ChatInterface = () => {
             <button
               onClick={() => setSelectedModel("groq")}
               disabled={loading}
-              className={`w-full text-left text-xs rounded p-2 transition-colors ${selectedModel === "groq"
+              className={`w-full text-left text-xs rounded p-2 transition-colors ${
+                selectedModel === "groq"
                   ? "bg-blue-600 text-white"
                   : "bg-gray-700 hover:bg-gray-600"
-                }`}
+              }`}
             >
               ⚡ Llama 3.1 8B (Groq)
             </button>
             <button
               onClick={() => setSelectedModel("gemini")}
               disabled={loading}
-              className={`w-full text-left text-xs rounded p-2 transition-colors ${selectedModel === "gemini"
+              className={`w-full text-left text-xs rounded p-2 transition-colors ${
+                selectedModel === "gemini"
                   ? "bg-blue-600 text-white"
                   : "bg-gray-700 hover:bg-gray-600"
-                }`}
+              }`}
             >
               ✨ Gemini 2.0 Flash
             </button>
@@ -159,14 +164,14 @@ const ChatInterface = () => {
 
         <div className="flex-1" />
 
-        {/* Info */}
+        {/* Tech Info */}
         <div className="text-xs text-gray-400 mt-4 border-t border-gray-700 pt-4">
           <p className="mb-2">🔧 Tech Stack:</p>
           <ul className="list-disc list-inside space-y-1">
             <li>LangChain RAG</li>
             <li>Qdrant Cloud</li>
-            <li>FastAPI</li>
-            <li>HuggingFace</li>
+            <li>FastAPI Backend</li>
+            <li>HuggingFace Spaces</li>
           </ul>
         </div>
 
@@ -193,7 +198,7 @@ const ChatInterface = () => {
           <p className="text-sm text-gray-500">
             Tanyakan tentang data statistik BPS Sumatera Utara •{" "}
             <span className="text-blue-600">
-              {selectedModel === "groq" ? "Llama 3.1 8B" : "Gemini 2.0 Flash"}
+              {selectedModel === "groq" ? "⚡ Llama 3.1 8B" : "✨ Gemini 2.0"}
             </span>
           </p>
         </div>
@@ -207,7 +212,7 @@ const ChatInterface = () => {
                 Mulai Percakapan
               </h3>
               <p className="text-sm mb-4">
-                Tanyakan tentang data inflasi, ekonomi, atau statistik lainnya
+                Tanyakan tentang data inflasi, ekonomi, kemiskinan, atau statistik lainnya
               </p>
             </div>
           )}
@@ -218,20 +223,23 @@ const ChatInterface = () => {
               className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-3xl rounded-lg p-4 ${msg.role === "user"
+                className={`max-w-3xl rounded-lg p-4 ${
+                  msg.role === "user"
                     ? "bg-blue-500 text-white"
                     : "bg-white border shadow-sm"
-                  }`}
+                }`}
               >
                 <div
-                  className={`text-sm whitespace-pre-wrap ${msg.role === "user" ? "text-white" : "text-gray-800"
-                    }`}
+                  className={`text-sm ${
+                    msg.role === "user" ? "text-white" : "text-gray-800"
+                  }`}
                   dangerouslySetInnerHTML={{ __html: msg.content }}
                 />
 
                 <div
-                  className={`text-xs mt-2 flex justify-between items-center ${msg.role === "user" ? "text-blue-100" : "text-gray-400"
-                    }`}
+                  className={`text-xs mt-2 flex justify-between items-center ${
+                    msg.role === "user" ? "text-blue-100" : "text-gray-400"
+                  }`}
                 >
                   <span>
                     {msg.timestamp.toLocaleTimeString("id-ID", {
@@ -255,18 +263,28 @@ const ChatInterface = () => {
                       {msg.sources.map((source, sidx) => (
                         <div
                           key={sidx}
-                          className="bg-gray-50 rounded p-3 text-xs hover:bg-gray-100"
+                          className="bg-gray-50 rounded p-3 text-xs hover:bg-gray-100 transition-colors"
                         >
                           <div className="font-semibold text-gray-700 mb-1">
                             {sidx + 1}. {source.title}
                           </div>
-                          <div className="text-gray-600 text-xs mb-2">
-                            {source.abstract.substring(0, 150)}...
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-500">
-                              📅 {source.release_date}
-                            </span>
+                          {source.abstract && (
+                            <div className="text-gray-600 text-xs mb-2">
+                              {source.abstract.substring(0, 150)}
+                              {source.abstract.length > 150 && "..."}
+                            </div>
+                          )}
+                          <div className="flex justify-between items-center flex-wrap gap-2">
+                            {source.release_date && (
+                              <span className="text-gray-500">
+                                📅 {source.release_date}
+                              </span>
+                            )}
+                            {source.source_type && (
+                              <span className="text-gray-500">
+                                {source.source_type}
+                              </span>
+                            )}
                           </div>
                           {source.link && (
                             <a
@@ -293,7 +311,7 @@ const ChatInterface = () => {
                 <div className="flex items-center space-x-2">
                   <div className="animate-bounce">🤖</div>
                   <div className="text-sm text-gray-600">
-                    INDA sedang menganalisis...
+                    INDA sedang menganalisis data BPS...
                   </div>
                 </div>
               </div>
@@ -307,6 +325,9 @@ const ChatInterface = () => {
                 <div>
                   <p className="font-semibold mb-1">Error:</p>
                   <p>{error}</p>
+                  <p className="mt-2 text-xs">
+                    Tip: Pastikan backend sudah berjalan di HuggingFace Spaces
+                  </p>
                 </div>
               </div>
             </div>
@@ -316,11 +337,11 @@ const ChatInterface = () => {
         </div>
 
         {/* Input Area */}
-        <div className="bg-white border-t p-4">
+        <div className="bg-white border-t p-4 shadow-lg">
           <form onSubmit={handleSubmit} className="flex gap-2 max-w-4xl mx-auto">
             <input
               type="text"
-              placeholder="Ketik pertanyaan Anda di sini..."
+              placeholder="Contoh: Data inflasi Sumut tahun 2024..."
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               className="flex-1 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400 text-gray-800"
@@ -330,16 +351,17 @@ const ChatInterface = () => {
             <button
               type="submit"
               disabled={loading || !question.trim()}
-              className={`px-6 py-3 rounded-lg font-medium transition-all ${loading || !question.trim()
+              className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                loading || !question.trim()
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                   : "bg-blue-500 hover:bg-blue-600 text-white hover:shadow-lg"
-                }`}
+              }`}
             >
               {loading ? "⏳" : "📤"}
             </button>
           </form>
           <p className="text-xs text-center text-gray-400 mt-2">
-            Press Enter to send • INDA v1.0 • Powered by LangChain
+            Press Enter to send • INDA v2.0 • Powered by LangChain + Qdrant
           </p>
         </div>
       </div>
